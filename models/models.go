@@ -16,8 +16,27 @@ type Game struct {
 	GameID         int
 	LeagueID       int
 	HomeTeamID     int
+	HomeTeamName   string
+	HomeTeamScore int
 	VisitingTeamID int
+	VisitingTeamName string
+	VisitingTeamScore int
+	TimePeriodType TimePeriodType
+	TimePeriod int
+	TimeRemainingSeconds int
+
 }
+
+type TimePeriodType string
+
+const(
+	Period TimePeriodType = "Period"
+	Inning = "Inning"
+	Quarter = "Quarter"
+	Half = "Half"
+)
+
+
 type GamePlayByPlays []PlayByPlay
 
 func (p PlayByPlay) GetPlayByPlay() string {
@@ -31,7 +50,7 @@ func (p *PlayByPlay) IncrementIndex(m *sync.Mutex) {
 
 }
 
-
+//*Retrieved from mysportsfeeds*//
 type GameFeed struct {
 	LastUpdatedOn time.Time `json:"lastUpdatedOn"`
 	GameDate time.Time

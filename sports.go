@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -55,16 +56,17 @@ func GetGamesForToday() []models.Game {
 
 	//get current date//
 	current := time.Now()
-	var year int = current.Year()
-	var month int = int(current.Month())
-	var day int = current.Day()
-	
+	year, month, day := time.Now().Date()
+
+	// var year int = current.Year()
+	//var month int = int(current.Month())
+	//var day int = current.Day()
 
 	//var year = "2019"
 	//var month = "7"
 	//var day = "15"
 
-//if len(month) == 1 {
+	//if len(month) == 1 {
 	//	month = "0" + month
 	//}
 
@@ -72,7 +74,6 @@ func GetGamesForToday() []models.Game {
 	//	day = "0" + day
 
 	//}
-
 
 	gameDate := time.Date(year, current.Month(), day, 0, 0, 0, 0, current.Location())
 	fmt.Printf("Game Date %v\n", gameDate)
@@ -86,8 +87,7 @@ func GetGamesForToday() []models.Game {
 		return *gamesFromDb
 	}
 
-
-	uriDateString := GetUriDateString(year, month, day)
+	uriDateString := GetUriDateString(year, int(month), day)
 	//games not in db ... get from service and save to db
 	//tmp := "https://api.mysportsfeeds.com/v2.1/pull/nhl/2018-2019/date/{gameDate}/games.json"
 	tmp := "https://api.mysportsfeeds.com/v2.1/pull/mlb/2020-regular/date/{gameDate}/games.json"
@@ -138,7 +138,7 @@ func GetGamesForToday() []models.Game {
 	return games
 }
 
-func GetUriDateString(year int, month int, day int)(dateString string){
+func GetUriDateString(year int, month int, day int) (dateString string) {
 
 	yearStr := strconv.Itoa(year)
 	monthStr := strconv.Itoa(month)
@@ -201,7 +201,7 @@ func main() {
 
 	//wg.Add(2)
 	go PublishToKafka(kafkaChan, quit, &wg)
-	go OutputGameResult(updateChan, quit, &wg)
+	go ProcessGameData(updateChan, quit, &wg)
 	//for true {
 	for i := 0; i < 1; i++ {
 
@@ -254,7 +254,8 @@ func PublishToKafka(kafkaChan chan interface{}, quit chan bool, wg *sync.WaitGro
 	}
 }
 
-func OutputGameResult(ch chan string, quit chan bool, wg *sync.WaitGroup) {
+//*Analyze game data for changes to scores or game time.  Publish changes to Kafka*//
+func ProcessGameData(ch chan string, quit chan bool, wg *sync.WaitGroup) {
 
 	//defer wg.Done()
 	timer := time.NewTimer(time.Second * 6)
