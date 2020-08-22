@@ -90,7 +90,7 @@ func GetGamesForToday() []models.Game {
 	uriDateString := GetUriDateString(year, month, day)
 	//games not in db ... get from service and save to db
 	//tmp := "https://api.mysportsfeeds.com/v2.1/pull/nhl/2018-2019/date/{gameDate}/games.json"
-	tmp := "https://api.mysportsfeeds.com/v2.1/pull/mlb/2020/date/{gameDate}/games.json"
+	tmp := "https://api.mysportsfeeds.com/v2.1/pull/mlb/2020-regular/date/{gameDate}/games.json"
 	uri := strings.Replace(tmp, "{gameDate}", uriDateString, -1)
 	//uri:="http://api.mysportsfeeds.com/v2.1/pull/mlb/2020-regular/date/20200821/games.json"
 	client := &http.Client{}
@@ -120,7 +120,7 @@ func GetGamesForToday() []models.Game {
 	//	log.Fatal(newerr)
 	//	}
 
-	gameFeed.GameDayDate = gameDate
+	gameFeed.GameDate = gameDate
 	//persist to mongo
 	collection := mongoClient.Database("schedule").Collection("games")
 	ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
@@ -153,7 +153,7 @@ func GetUriDateString(year int, month int, day int)(dateString string){
 
 	}
 
-	return yearStr + monthStr + dateString
+	return yearStr + monthStr + dayStr
 }
 
 func GetGamesFromDb(client *mongo.Client, gameDate time.Time) (games *[]models.Game, ok bool) {
@@ -164,7 +164,7 @@ func GetGamesFromDb(client *mongo.Client, gameDate time.Time) (games *[]models.G
 	collection := client.Database("schedule").Collection("games")
 	dbGames := models.GameFeed{}
 
-	gameDoc := bson.D{{"gamedaydate", gameDate}}
+	gameDoc := bson.D{{"gamedate", gameDate}}
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	dbErr := collection.FindOne(ctx, gameDoc).Decode(&dbGames)
 

@@ -31,9 +31,10 @@ func (p *PlayByPlay) IncrementIndex(m *sync.Mutex) {
 
 }
 
+
 type GameFeed struct {
 	LastUpdatedOn time.Time `json:"lastUpdatedOn"`
-	GameDayDate time.Time "json:gameDayDate"
+	GameDate time.Time
 	Games         []struct {
 		Schedule struct {
 			ID        int         `json:"id"`
@@ -51,31 +52,143 @@ type GameFeed struct {
 				ID   int    `json:"id"`
 				Name string `json:"name"`
 			} `json:"venue"`
-			VenueAllegiance          string        `json:"venueAllegiance"`
-			ScheduleStatus           string        `json:"scheduleStatus"`
-			OriginalStartTime        interface{}   `json:"originalStartTime"`
-			DelayedOrPostponedReason interface{}   `json:"delayedOrPostponedReason"`
-			PlayedStatus             string        `json:"playedStatus"`
-			Attendance               interface{}   `json:"attendance"`
-			Officials                []interface{} `json:"officials"`
-			Broadcasters             []interface{} `json:"broadcasters"`
-			Weather                  interface{}   `json:"weather"`
+			VenueAllegiance          string      `json:"venueAllegiance"`
+			ScheduleStatus           string      `json:"scheduleStatus"`
+			OriginalStartTime        interface{} `json:"originalStartTime"`
+			DelayedOrPostponedReason interface{} `json:"delayedOrPostponedReason"`
+			PlayedStatus             string      `json:"playedStatus"`
+			Attendance               interface{} `json:"attendance"`
+			Officials                []struct {
+				ID        int    `json:"id"`
+				Title     string `json:"title"`
+				FirstName string `json:"firstName"`
+				LastName  string `json:"lastName"`
+			} `json:"officials"`
+			Broadcasters []string `json:"broadcasters"`
+			Weather      struct {
+				Type        string `json:"type"`
+				Description string `json:"description"`
+				Wind        struct {
+					Speed struct {
+						MilesPerHour      int `json:"milesPerHour"`
+						KilometersPerHour int `json:"kilometersPerHour"`
+					} `json:"speed"`
+					Direction struct {
+						Degrees int    `json:"degrees"`
+						Label   string `json:"label"`
+					} `json:"direction"`
+				} `json:"wind"`
+				Temperature struct {
+					Fahrenheit int `json:"fahrenheit"`
+					Celsius    int `json:"celsius"`
+				} `json:"temperature"`
+				Precipitation struct {
+					Type    interface{} `json:"type"`
+					Percent interface{} `json:"percent"`
+					Amount  struct {
+						Millimeters interface{} `json:"millimeters"`
+						Centimeters interface{} `json:"centimeters"`
+						Inches      interface{} `json:"inches"`
+						Feet        interface{} `json:"feet"`
+					} `json:"amount"`
+				} `json:"precipitation"`
+				HumidityPercent int `json:"humidityPercent"`
+			} `json:"weather"`
 		} `json:"schedule"`
 		Score struct {
-			CurrentPeriod                 interface{} `json:"currentPeriod"`
-			CurrentPeriodSecondsRemaining interface{} `json:"currentPeriodSecondsRemaining"`
-			CurrentIntermission           interface{} `json:"currentIntermission"`
-			AwayScoreTotal                int         `json:"awayScoreTotal"`
-			AwayShotsTotal                int         `json:"awayShotsTotal"`
-			HomeScoreTotal                int         `json:"homeScoreTotal"`
-			HomeShotsTotal                int         `json:"homeShotsTotal"`
-			Periods                       []struct {
-				PeriodNumber int `json:"periodNumber"`
+			CurrentInning       interface{} `json:"currentInning"`
+			CurrentInningHalf   interface{} `json:"currentInningHalf"`
+			CurrentIntermission int         `json:"currentIntermission"`
+			PlayStatus          struct {
+				Batter struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"batter"`
+				FirstBaseRunner  interface{} `json:"firstBaseRunner"`
+				SecondBaseRunner interface{} `json:"secondBaseRunner"`
+				ThirdBaseRunner  interface{} `json:"thirdBaseRunner"`
+				Pitcher          struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"pitcher"`
+				Catcher struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"catcher"`
+				FirstBaseman struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"firstBaseman"`
+				SecondBaseman struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"secondBaseman"`
+				ThirdBaseman struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"thirdBaseman"`
+				ShortStop struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"shortStop"`
+				LeftFielder struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"leftFielder"`
+				CenterFielder struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"centerFielder"`
+				RightFielder struct {
+					ID           int    `json:"id"`
+					FirstName    string `json:"firstName"`
+					LastName     string `json:"lastName"`
+					Position     string `json:"position"`
+					JerseyNumber int    `json:"jerseyNumber"`
+				} `json:"rightFielder"`
+				OutFielder  interface{} `json:"outFielder"`
+				BallCount   int         `json:"ballCount"`
+				StrikeCount int         `json:"strikeCount"`
+				OutCount    int         `json:"outCount"`
+			} `json:"playStatus"`
+			AwayScoreTotal  int `json:"awayScoreTotal"`
+			AwayHitsTotal   int `json:"awayHitsTotal"`
+			AwayErrorsTotal int `json:"awayErrorsTotal"`
+			HomeScoreTotal  int `json:"homeScoreTotal"`
+			HomeHitsTotal   int `json:"homeHitsTotal"`
+			HomeErrorsTotal int `json:"homeErrorsTotal"`
+			Innings         []struct {
+				InningNumber int `json:"inningNumber"`
 				AwayScore    int `json:"awayScore"`
-				AwayShots    int `json:"awayShots"`
 				HomeScore    int `json:"homeScore"`
-				HomeShots    int `json:"homeShots"`
-			} `json:"periods"`
+			} `json:"innings"`
 		} `json:"score"`
 	} `json:"games"`
 	References struct {
@@ -88,21 +201,33 @@ type GameFeed struct {
 				ID   int    `json:"id"`
 				Name string `json:"name"`
 			} `json:"homeVenue"`
-			TeamColoursHex       []interface{} `json:"teamColoursHex"`
-			SocialMediaAccounts  []interface{} `json:"socialMediaAccounts"`
-			OfficialLogoImageSrc interface{}   `json:"officialLogoImageSrc"`
+			TeamColoursHex      []interface{} `json:"teamColoursHex"`
+			SocialMediaAccounts []struct {
+				MediaType string `json:"mediaType"`
+				Value     string `json:"value"`
+			} `json:"socialMediaAccounts"`
+			OfficialLogoImageSrc interface{} `json:"officialLogoImageSrc"`
 		} `json:"teamReferences"`
 		VenueReferences []struct {
-			ID                    int           `json:"id"`
-			Name                  string        `json:"name"`
-			City                  string        `json:"city"`
-			Country               string        `json:"country"`
-			GeoCoordinates        interface{}   `json:"geoCoordinates"`
-			CapacitiesByEventType []interface{} `json:"capacitiesByEventType"`
-			PlayingSurface        interface{}   `json:"playingSurface"`
-			BaseballDimensions    []interface{} `json:"baseballDimensions"`
-			HasRoof               interface{}   `json:"hasRoof"`
-			HasRetractableRoof    interface{}   `json:"hasRetractableRoof"`
+			ID             int    `json:"id"`
+			Name           string `json:"name"`
+			City           string `json:"city"`
+			Country        string `json:"country"`
+			GeoCoordinates struct {
+				Latitude  float64 `json:"latitude"`
+				Longitude float64 `json:"longitude"`
+			} `json:"geoCoordinates"`
+			CapacitiesByEventType []struct {
+				EventType string `json:"eventType"`
+				Capacity  int    `json:"capacity"`
+			} `json:"capacitiesByEventType"`
+			PlayingSurface     string `json:"playingSurface"`
+			BaseballDimensions []struct {
+				DimensionType string `json:"dimensionType"`
+				DistanceFeet  int    `json:"distanceFeet"`
+			} `json:"baseballDimensions"`
+			HasRoof            bool `json:"hasRoof"`
+			HasRetractableRoof bool `json:"hasRetractableRoof"`
 		} `json:"venueReferences"`
 	} `json:"references"`
 }
