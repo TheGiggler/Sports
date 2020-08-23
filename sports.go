@@ -202,7 +202,8 @@ func main() {
 	var mux = sync.Mutex{}
 	var games = GetGamesForToday()
 	//need to get game list first ... needs to run synchronously?
-	gameMap := map[int]models.Game{games}
+	gameMap := GetGamesMap(games);
+	fmt.Printf(gameMap[0].AwayTeamName);
 
 	//wg.Add(2)
 	go PublishToKafka(kafkaChan, quit, &wg)
@@ -236,6 +237,15 @@ func main() {
 	fmt.Print("Quit sent\n")
 	time.Sleep(time.Second * 5)
 	fmt.Printf("Sports is over!\n")
+}
+
+func GetGamesMap(games []models.Game)(map[int]models.Game){
+	var gamesMap = make(map[int]models.Game)
+
+	for _, game := range games {
+        gamesMap[game.GameID]= game
+	}
+	return gamesMap
 }
 
 func PublishToKafka(kafkaChan chan interface{}, quit chan bool, wg *sync.WaitGroup) {
