@@ -128,13 +128,7 @@ func GetGamesForToday() []models.Game {
 
 	fmt.Printf("inserted:%v\n", res.InsertedID)
 
-	games := []models.Game{}
-	for _, game := range gameFeed.Games {
-		g := models.Game{GameID: game.Schedule.ID}
-		games = append(games, g)
-	}
-	//game:=new(models.Game)
-
+	games := FeedGamesToGames(gameFeed)
 	return games
 }
 
@@ -172,12 +166,22 @@ func GetGamesFromDb(client *mongo.Client, gameDate time.Time) (games *[]models.G
 		return nil, false
 	}
 
-	games2 := []models.Game{}
-	for _, game := range dbGames.Games {
-		g := models.Game{GameID: game.Schedule.ID}
-		games2 = append(games2, g)
-	}
+	games2 := FeedGamesToGames(&dbGames);
+
+
 	return &games2, true
+}
+
+func FeedGamesToGames(feed *models.GameFeed)(gameModels []models.Game){
+	games := []models.Game{}
+	for _, feedGame := range feed.Games {
+		g := models.Game{GameID: feedGame.Schedule.ID, HomeTeamID: feedGame.Schedule.HomeTeam.ID, HomeTeamName: feedGame.Schedule.HomeTeam.Abbreviation,
+			AwayTeamID:feedGame.Schedule.AwayTeam.ID, AwayTeamName:feedGame.Schedule.AwayTeam.Abbreviation}
+		games = append(games, g)
+
+	}
+
+	return games;
 }
 
 func kafkaTest() {
@@ -198,6 +202,7 @@ func main() {
 	var mux = sync.Mutex{}
 	var games = GetGamesForToday()
 	//need to get game list first ... needs to run synchronously?
+	gameMap := map[int]models.Game{games}
 
 	//wg.Add(2)
 	go PublishToKafka(kafkaChan, quit, &wg)

@@ -18,9 +18,9 @@ type Game struct {
 	HomeTeamID     int
 	HomeTeamName   string
 	HomeTeamScore int
-	VisitingTeamID int
-	VisitingTeamName string
-	VisitingTeamScore int
+	AwayTeamID int
+	AwayTeamName string
+	AwayTeamScore int
 	TimePeriodType TimePeriodType
 	TimePeriod int
 	TimeRemainingSeconds int
