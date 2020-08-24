@@ -23,10 +23,12 @@ var updateCount int
 var authHeader = "ODA5MWU4OGUtZDQ2Ni00YTdlLTljNTUtZTE2MTZhOk1ZU1BPUlRTRkVFRFM="
 
 //test http request
-func RequestPlayByPay(GameID int, kafkaChan chan interface{}) {
+func RequestPlayByPay(GameID int, kafkaChan chan interface{},wg *sync.WaitGroup) {
+
+	defer wg.Done()
 
 	id := strconv.Itoa(GameID)
-	tmp := "https://api.mysportsfeeds.com/v2.1/pull/nhl/2018-2019/games/{game}/playbyplay.json"
+	tmp := "https://api.mysportsfeeds.com/v2.1/pull/mlb/2020-regular/games/{game}/playbyplay.json"
 
 	uri := strings.Replace(tmp, "{game}", id, -1)
 	client := &http.Client{}
@@ -191,7 +193,7 @@ func kafkaTest() {
 func main() {
 
 	kafkaTest()
-	updateChan := make(chan string)
+//	updateChan := make(chan string)
 	kafkaChan := make(chan interface{})
 
 	quit := make(chan bool, 2)
@@ -199,44 +201,38 @@ func main() {
 	fmt.Printf("Welcome to Sports!\n")
 
 	var wg sync.WaitGroup
-	var mux = sync.Mutex{}
+	//var mux = sync.Mutex{}
 	var games = GetGamesForToday()
 	//need to get game list first ... needs to run synchronously?
 	gameMap := GetGamesMap(games);
 	fmt.Printf(gameMap[0].AwayTeamName);
 
-	//wg.Add(2)
-	go PublishToKafka(kafkaChan, quit, &wg)
-	go ProcessGameData(updateChan, quit, &wg)
+	wg.Add(2)
+	go PublishToKafka(kafkaChan, quit, &wg)//pass pointers to Channels?
+	go ProcessGames(gameMap, quit, kafkaChan, &wg)
+	//go ProcessGameData(updateChan, quit, &wg)
+
+	wg.Wait()
+
 	//for true {
-	for i := 0; i < 1; i++ {
+		
 
-		for _, game := range games {
-
-			wg.Add(1)
-			go UpdateGame(game, &wg, &mux, updateChan, kafkaChan)
-
-		}
-		wg.Wait()
-
-		time.Sleep(time.Second * 2)
-		//quit<-true
-	}
-
-	//time.Sleep(time.Second * 5)
-	// for _, element := range pbps {
-	// 	fmt.Printf(element.GetPlayByPlay() + "\n")
-	// 	var p = &element
-	// 	p.IncrementIndex()
-	// 	fmt.Printf("%v\n", element.Index)
-
-	// }
 	fmt.Printf("Sending quit\n")
 	quit <- true
 	quit <- true
-	fmt.Print("Quit sent\n")
+	fmt.Print("Quits sent\n")
 	time.Sleep(time.Second * 5)
 	fmt.Printf("Sports is over!\n")
+}
+
+func ProcessGames(games map[int]models.Game, quitChannel chan bool, kafkaChannel chan interface{}, wg *sync.WaitGroup)(){
+	defer wg.Done()
+
+	for _, game := range games {
+		wg.Add(1)
+		go RequestPlayByPay(game.GameID, kafkaChannel, wg)
+	}
+	
 }
 
 func GetGamesMap(games []models.Game)(map[int]models.Game){
@@ -260,7 +256,7 @@ func PublishToKafka(kafkaChan chan interface{}, quit chan bool, wg *sync.WaitGro
 
 		case <-quit:
 			fmt.Println("Quitting PublishToKafka")
-			//wg.Done()
+			wg.Done()
 			return
 
 		default:
@@ -293,13 +289,13 @@ func ProcessGameData(ch chan string, quit chan bool, wg *sync.WaitGroup) {
 }
 
 func UpdateGame(game models.Game, wg *sync.WaitGroup, m *sync.Mutex, ch chan string, kafkaChan chan interface{}) {
-	defer wg.Done()
+	//defer wg.Done()
 	fmt.Printf("In Updating GameID %v\n", game.GameID)
 	m.Lock()
 	updateCount++
 	m.Unlock()
 	fmt.Printf("updateCount %v\n", updateCount)
-	go RequestPlayByPay(game.GameID, kafkaChan)
+	go RequestPlayByPay(game.GameID, kafkaChan,wg)
 	ch <- fmt.Sprint("Updating GameID ", game.GameID)
 
 }
