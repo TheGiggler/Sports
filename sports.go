@@ -23,12 +23,12 @@ var updateCount int
 var authHeader = "ODA5MWU4OGUtZDQ2Ni00YTdlLTljNTUtZTE2MTZhOk1ZU1BPUlRTRkVFRFM="
 
 //test http request
-func RequestPlayByPay(GameID int, kafkaChan chan interface{},wg *sync.WaitGroup) {
+func RequestBoxScore(GameID int, kafkaChan chan interface{},wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
 	id := strconv.Itoa(GameID)
-	tmp := "https://api.mysportsfeeds.com/v2.1/pull/mlb/2020-regular/games/{game}/playbyplay.json"
+	tmp := "https://api.mysportsfeeds.com/v2.1/pull/mlb/2020-regular/games/{game}/boxscore.json"
 
 	uri := strings.Replace(tmp, "{game}", id, -1)
 	client := &http.Client{}
@@ -230,7 +230,7 @@ func ProcessGames(games map[int]models.Game, quitChannel chan bool, kafkaChannel
 
 	for _, game := range games {
 		wg.Add(1)
-		go RequestPlayByPay(game.GameID, kafkaChannel, wg)
+		go RequestBoxScore(game.GameID, kafkaChannel, wg)
 	}
 	
 }
@@ -295,7 +295,7 @@ func UpdateGame(game models.Game, wg *sync.WaitGroup, m *sync.Mutex, ch chan str
 	updateCount++
 	m.Unlock()
 	fmt.Printf("updateCount %v\n", updateCount)
-	go RequestPlayByPay(game.GameID, kafkaChan,wg)
+	go RequestBoxScore(game.GameID, kafkaChan,wg)
 	ch <- fmt.Sprint("Updating GameID ", game.GameID)
 
 }
