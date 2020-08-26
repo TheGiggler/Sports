@@ -23,29 +23,56 @@ var updateCount int
 var authHeader = "ODA5MWU4OGUtZDQ2Ni00YTdlLTljNTUtZTE2MTZhOk1ZU1BPUlRTRkVFRFM="
 
 //test http request
-func RequestBoxScore(GameID int, kafkaChan chan interface{},wg *sync.WaitGroup) {
+func ProcessBoxScore(GameID int, kafkaChan chan interface{}, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
-	id := strconv.Itoa(GameID)
-	tmp := "https://api.mysportsfeeds.com/v2.1/pull/mlb/2020-regular/games/{game}/boxscore.json"
+	for true {
+		id := strconv.Itoa(GameID)
+		tmp := "http://api.mysportsfeeds.com/v2.1/pull/mlb/2020-regular/games/{game}/boxscore.json"
 
-	uri := strings.Replace(tmp, "{game}", id, -1)
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", uri, nil)
-	req.Header.Add("Authorization", "Basic "+authHeader)
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalln(err)
+		uri := strings.Replace(tmp, "{game}", id, -1)
+		client := &http.Client{}
+		req, err := http.NewRequest("GET", uri, nil)
+		req.Header.Add("Authorization", "Basic "+authHeader)
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		if resp.StatusCode == 204 {
+			msg := "Game " + strconv.Itoa(GameID) + " has not started"
+			log.Println(string(msg))
+			kafkaChan <- string(msg)
+			return
+
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		boxScore := &models.Boxscore{}
+		newerr := json.Unmarshal([]byte(body), boxScore)
+		if newerr != nil {
+			log.Fatal(newerr)
+		}
+		//bodyBytes := []byte(body)
+		//boxJson := string(bodyBytes[:])
+		//fmt.Printf("myString:%v\n", boxJson)
+
+		var gameStatus = "Inning: " + boxScore.Scoring.CurrentInningHalf + " " + strconv.Itoa(boxScore.Scoring.CurrentInning)
+
+		if(boxScore.Game.PlayedStatus == "COMPLETED_PENDING_REVIEW"){
+			gameStatus = "FINAL"
+		}
+		gameDesc := "GameID: " + strconv.Itoa(GameID) + " " +  boxScore.Game.AwayTeam.Abbreviation + 
+" " + strconv.Itoa(boxScore.Scoring.AwayScoreTotal) + " @ " + boxScore.Game.HomeTeam.Abbreviation + " " + strconv.Itoa(boxScore.Scoring.HomeScoreTotal) + "  " + gameStatus
+		log.Println(string(gameDesc))
+		kafkaChan <- string(gameDesc)
+		time.Sleep(3000)
 	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	log.Println(string(body))
-	kafkaChan <- string(body)
 }
 
 func GetGamesForToday() []models.Game {
@@ -168,22 +195,21 @@ func GetGamesFromDb(client *mongo.Client, gameDate time.Time) (games *[]models.G
 		return nil, false
 	}
 
-	games2 := FeedGamesToGames(&dbGames);
-
+	games2 := FeedGamesToGames(&dbGames)
 
 	return &games2, true
 }
 
-func FeedGamesToGames(feed *models.GameFeed)(gameModels []models.Game){
+func FeedGamesToGames(feed *models.GameFeed) (gameModels []models.Game) {
 	games := []models.Game{}
 	for _, feedGame := range feed.Games {
 		g := models.Game{GameID: feedGame.Schedule.ID, HomeTeamID: feedGame.Schedule.HomeTeam.ID, HomeTeamName: feedGame.Schedule.HomeTeam.Abbreviation,
-			AwayTeamID:feedGame.Schedule.AwayTeam.ID, AwayTeamName:feedGame.Schedule.AwayTeam.Abbreviation}
+			AwayTeamID: feedGame.Schedule.AwayTeam.ID, AwayTeamName: feedGame.Schedule.AwayTeam.Abbreviation}
 		games = append(games, g)
 
 	}
 
-	return games;
+	return games
 }
 
 func kafkaTest() {
@@ -193,7 +219,7 @@ func kafkaTest() {
 func main() {
 
 	kafkaTest()
-//	updateChan := make(chan string)
+	//	updateChan := make(chan string)
 	kafkaChan := make(chan interface{})
 
 	quit := make(chan bool, 2)
@@ -204,18 +230,17 @@ func main() {
 	//var mux = sync.Mutex{}
 	var games = GetGamesForToday()
 	//need to get game list first ... needs to run synchronously?
-	gameMap := GetGamesMap(games);
-	fmt.Printf(gameMap[0].AwayTeamName);
+	gameMap := GetGamesMap(games)
+	fmt.Printf(gameMap[0].AwayTeamName)
 
 	wg.Add(2)
-	go PublishToKafka(kafkaChan, quit, &wg)//pass pointers to Channels?
+	go PublishToKafka(kafkaChan, quit, &wg) //pass pointers to Channels?
 	go ProcessGames(gameMap, quit, kafkaChan, &wg)
 	//go ProcessGameData(updateChan, quit, &wg)
 
 	wg.Wait()
 
 	//for true {
-		
 
 	fmt.Printf("Sending quit\n")
 	quit <- true
@@ -225,21 +250,24 @@ func main() {
 	fmt.Printf("Sports is over!\n")
 }
 
-func ProcessGames(games map[int]models.Game, quitChannel chan bool, kafkaChannel chan interface{}, wg *sync.WaitGroup)(){
+func ProcessGames(games map[int]models.Game, quitChannel chan bool, kafkaChannel chan interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	//for true {
 	for _, game := range games {
+
 		wg.Add(1)
-		go RequestBoxScore(game.GameID, kafkaChannel, wg)
+		go ProcessBoxScore(game.GameID, kafkaChannel, wg)
 	}
-	
+	//}
+
 }
 
-func GetGamesMap(games []models.Game)(map[int]models.Game){
+func GetGamesMap(games []models.Game) map[int]models.Game {
 	var gamesMap = make(map[int]models.Game)
 
 	for _, game := range games {
-        gamesMap[game.GameID]= game
+		gamesMap[game.GameID] = game
 	}
 	return gamesMap
 }
@@ -251,8 +279,8 @@ func PublishToKafka(kafkaChan chan interface{}, quit chan bool, wg *sync.WaitGro
 	for true {
 		select {
 		case newEvent := <-kafkaChan:
-			fmt.Println("Published to KAFKA%v/n", newEvent)
 			//we would publish to kafka here
+			fmt.Println("Published to KAFKA %v/n", newEvent)
 
 		case <-quit:
 			fmt.Println("Quitting PublishToKafka")
@@ -260,7 +288,8 @@ func PublishToKafka(kafkaChan chan interface{}, quit chan bool, wg *sync.WaitGro
 			return
 
 		default:
-			fmt.Println("no KAFKA activity")
+			//fmt.Println("no KAFKA activity")
+			return
 		}
 	}
 }
@@ -295,7 +324,7 @@ func UpdateGame(game models.Game, wg *sync.WaitGroup, m *sync.Mutex, ch chan str
 	updateCount++
 	m.Unlock()
 	fmt.Printf("updateCount %v\n", updateCount)
-	go RequestBoxScore(game.GameID, kafkaChan,wg)
+	go ProcessBoxScore(game.GameID, kafkaChan, wg)
 	ch <- fmt.Sprint("Updating GameID ", game.GameID)
 
 }
