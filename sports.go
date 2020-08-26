@@ -70,8 +70,8 @@ func ProcessBoxScore(GameID int, kafkaChan chan interface{}, wg *sync.WaitGroup)
 		gameDesc := "GameID: " + strconv.Itoa(GameID) + " " +  boxScore.Game.AwayTeam.Abbreviation + 
 " " + strconv.Itoa(boxScore.Scoring.AwayScoreTotal) + " @ " + boxScore.Game.HomeTeam.Abbreviation + " " + strconv.Itoa(boxScore.Scoring.HomeScoreTotal) + "  " + gameStatus
 		log.Println(string(gameDesc))
-		kafkaChan <- string(gameDesc)
-		time.Sleep(3000)
+		//kafkaChan <- string(gameDesc)
+		time.Sleep(3000 * time.Millisecond)
 	}
 }
 
