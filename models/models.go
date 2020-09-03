@@ -13,7 +13,7 @@ type PlayByPlay struct {
 
 
 
-type Game struct {
+type GameSummary struct {
 	Description    string
 	GameID         int
 	LeagueID       int
@@ -54,7 +54,7 @@ func (p *PlayByPlay) IncrementIndex(m *sync.Mutex) {
 
 type Boxscore struct {
 	LastUpdatedOn time.Time `json:"lastUpdatedOn"`
-	Game          struct {
+	GameSummary          struct {
 		ID        int         `json:"id"`
 		StartTime time.Time   `json:"startTime"`
 		EndedTime interface{} `json:"endedTime"`
