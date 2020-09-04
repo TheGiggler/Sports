@@ -23,7 +23,7 @@ var updateCount int
 var authHeader = "ODA5MWU4OGUtZDQ2Ni00YTdlLTljNTUtZTE2MTZhOk1ZU1BPUlRTRkVFRFM="
 
 //test http request
-func ProcessBoxScore(game *models.GameSummary, kafkaChan chan interface{}, quitChannel chan bool, wg *sync.WaitGroup) {
+func ProcessBoxScore(game models.GameSummary, kafkaChan chan interface{}, quitChannel chan bool, wg *sync.WaitGroup) {
 
 	currentGameSummary := game
 	refreshTimer := time.Tick(10000 * time.Millisecond)
@@ -73,7 +73,7 @@ func ProcessBoxScore(game *models.GameSummary, kafkaChan chan interface{}, quitC
 
 			newGameSummary := GetGameSummaryFromBoxScore(boxScore)
 			//todo: use a hash
-			if newGameSummary.HomeTeamScore != currentGameSummary.HomeTeamScore || newGameSummary.AwayTeamScore != currentGameSummary.AwayTeamScore || newGameSummary.TimePeriod != currentGameSummary.TimePeriod {
+			if newGameSummary.HomeTeamScore > currentGameSummary.HomeTeamScore || newGameSummary.AwayTeamScore > currentGameSummary.AwayTeamScore || newGameSummary.TimePeriod > currentGameSummary.TimePeriod {
 
 				currentGameSummary = newGameSummary
 				var gameStatus = "Inning: " + boxScore.Scoring.CurrentInningHalf + " " + strconv.Itoa(boxScore.Scoring.CurrentInning)
@@ -97,14 +97,14 @@ func ProcessBoxScore(game *models.GameSummary, kafkaChan chan interface{}, quitC
 	}
 }
 
-func GetGameSummaryFromBoxScore(boxScore *models.Boxscore) *models.GameSummary {
+func GetGameSummaryFromBoxScore(boxScore *models.Boxscore) models.GameSummary {
 
 	var gameSummary *models.GameSummary
 	gameSummary = new(models.GameSummary)
 	gameSummary.HomeTeamScore = boxScore.Scoring.HomeScoreTotal
 	gameSummary.AwayTeamScore = boxScore.Scoring.AwayScoreTotal
 	gameSummary.TimePeriod = boxScore.Scoring.CurrentInning
-	return gameSummary
+	return *gameSummary
 
 }
 
@@ -289,7 +289,7 @@ func ProcessGames(games map[int]models.GameSummary, quitChannel chan bool, kafka
 	for _, game := range games {
 
 		wg.Add(1)
-		go ProcessBoxScore(&game, kafkaChannel, quitChannel, wg)
+		go ProcessBoxScore(game, kafkaChannel, quitChannel, wg)
 	}
 	//}
 
